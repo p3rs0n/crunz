@@ -11,6 +11,7 @@ use Symfony\Component\Config\FileLocator;
 use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Container;
@@ -58,6 +59,8 @@ class Application extends SymfonyApplication
     /** @var EnvFlags */
     private $envFlags;
 
+    public static string $CWD = '';
+
     public function __construct(string $appName, string $appVersion)
     {
         parent::__construct($appName, $appVersion);
@@ -66,6 +69,7 @@ class Application extends SymfonyApplication
 
         $this->initializeContainer();
         $this->registerDeprecationHandler();
+        $this->setConfigPath();
 
         foreach (self::COMMANDS as $commandClass) {
             /** @var Command $command */
@@ -79,6 +83,17 @@ class Application extends SymfonyApplication
 
     public function run(InputInterface $input = null, OutputInterface $output = null): int
     {
+        // Add config option to all commands
+        $this->getDefinition()->addOptions([
+            new InputOption(
+                'cwd',
+                '',
+                InputOption::VALUE_REQUIRED,
+                'Path to CWD',
+                __DIR__.'/..',
+            )
+        ]);
+
         if (null === $output) {
             /** @var OutputInterface $outputObject */
             $outputObject = $this->container
@@ -268,5 +283,24 @@ class Application extends SymfonyApplication
             },
             E_USER_DEPRECATED
         );
+    }
+
+    /**
+     * Get input before command's init because configuration is used in command init
+     *
+     * @return void
+     * @throws \Exception
+     */
+    private function setConfigPath(): void
+    {
+        /** @var \Symfony\Component\Console\Input\ArgvInput $input */
+        $input = $this->container->get(InputInterface::class);
+
+        if ($input->hasParameterOption('--cwd')) {
+            $value = $input->getParameterOption('--cwd');
+            if (!empty($value) && is_string($value)) {
+                self::$CWD = $value;
+            }
+        }
     }
 }

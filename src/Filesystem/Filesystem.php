@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Crunz\Filesystem;
 
+use Crunz\Application;
 use Crunz\Path\Path;
 
 final class Filesystem implements FilesystemInterface
@@ -14,7 +15,8 @@ final class Filesystem implements FilesystemInterface
     /** {@inheritdoc} */
     public function getCwd()
     {
-        $cwd = \getcwd();
+
+        $cwd = Application::$CWD?:\getcwd();
 
         if (false === $cwd) {
             throw new \RuntimeException("Unable to get 'cwd'.");
